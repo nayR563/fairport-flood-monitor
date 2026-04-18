@@ -72,8 +72,7 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Run flood system
+      - name: Run alert check + weekly report
   run: python flood_monitor.py --both
   env:
     PYTHONUNBUFFERED: "1"
-          
