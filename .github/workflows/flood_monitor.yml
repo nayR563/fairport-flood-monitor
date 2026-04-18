@@ -2,26 +2,20 @@ name: Fairport Flood Monitor
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
-    - cron: '0 23 * * 4'
+    - cron: '0 0,6,12,18 * * *'
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Which run mode to use'
-        required: true
-        default: 'check'
-        type: choice
-        options:
-          - check
-          - weekly
-          - both
+        description: 'check, weekly, or both'
+        required: false
+        default: 'both'
 
 jobs:
-  flood-check:
+  monitor:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -32,9 +26,10 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Determine run mode
-        id: mode
-        run: |
+      - name: Run flood monitor
+        run: python flood_monitor.py "${{ github.event.inputs.mode || 'auto' }}"
+        env:
+          PYTHONUNBUFFERED: '1'        run: |
           if [ "${{ github.event_name }}" = "schedule" ]; then
             if [ "${{ github.event.schedule }}" = "0 23 * * 4" ]; then
               echo "mode=weekly" >> $GITHUB_OUTPUT
