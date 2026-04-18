@@ -169,7 +169,7 @@ def rise_rate_ftperday(stageflow):
 def send_ntfy(title, message, priority="default", tags=None):
     """Send a push notification via ntfy.sh."""
     headers = {
-        "Title": title,
+    "Title": title.encode("utf-8"),
         "Priority": priority,
         "Content-Type": "text/plain",
     }
