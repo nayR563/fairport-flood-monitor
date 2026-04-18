@@ -1,0 +1,79 @@
+name: Fairport Flood Monitor
+
+on:
+  schedule:
+    # Alert check every 6 hours: 00:00, 06:00, 12:00, 18:00 UTC
+    - cron: '0 0,6,12,18 * * *'
+    # Weekly report every Thursday at 11 PM UTC (6 PM CDT)
+    - cron: '0 23 * * 4'
+
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run mode'
+        required: true
+        default: 'check'
+        type: choice
+        options:
+          - check
+          - weekly
+          - both
+
+jobs:
+  flood-check:
+    runs-on: ubuntu-latest
+    # Skip the alert check job when triggered by the weekly cron
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 0,6,12,18 * * *'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Determine run mode
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_OUTPUT
+          else
+            echo "mode=check" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run flood monitor
+        run: python flood_monitor.py --${{ steps.mode.outputs.mode }}
+        env:
+          PYTHONUNBUFFERED: "1"
+
+  weekly-report:
+    runs-on: ubuntu-latest
+    # Only run on Thursday cron or manual weekly trigger
+    if: >
+      github.event.schedule == '0 23 * * 4' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'weekly') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'both')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run weekly report
+        run: python flood_monitor.py --weekly
+        env:
+          PYTHONUNBUFFERED: "1"
+          
